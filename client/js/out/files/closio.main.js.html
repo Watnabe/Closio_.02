@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>closio.main.js</title>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
+    <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
+    <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
+    <link rel="shortcut icon" type="image/png" href="../assets/favicon.png">
+    <script src="http://yui.yahooapis.com/combo?3.9.1/build/yui/yui-min.js"></script>
+</head>
+<body class="yui3-skin-sam">
+
+<div id="doc">
+    <div id="hd" class="yui3-g header">
+        <div class="yui3-u-3-4">
+            
+                <h1><img src="../assets/css/logo.png" title=""></h1>
+            
+        </div>
+        <div class="yui3-u-1-4 version">
+            <em>API Docs for: </em>
+        </div>
+    </div>
+    <div id="bd" class="yui3-g">
+
+        <div class="yui3-u-1-4">
+            <div id="docs-sidebar" class="sidebar apidocs">
+                <div id="api-list">
+    <h2 class="off-left">APIs</h2>
+    <div id="api-tabview" class="tabview">
+        <ul class="tabs">
+            <li><a href="#api-classes">Classes</a></li>
+            <li><a href="#api-modules">Modules</a></li>
+        </ul>
+
+        <div id="api-tabview-filter">
+            <input type="search" id="api-filter" placeholder="Type to filter APIs">
+        </div>
+
+        <div id="api-tabview-panel">
+            <ul id="api-classes" class="apis classes">
+            
+            </ul>
+
+            <ul id="api-modules" class="apis modules">
+            
+            </ul>
+        </div>
+    </div>
+</div>
+
+            </div>
+        </div>
+        <div class="yui3-u-3-4">
+                <div id="api-options">
+        Show:
+        <label for="api-show-inherited">
+            <input type="checkbox" id="api-show-inherited" checked>
+            Inherited
+        </label>
+
+        <label for="api-show-protected">
+            <input type="checkbox" id="api-show-protected">
+            Protected
+        </label>
+
+        <label for="api-show-private">
+            <input type="checkbox" id="api-show-private">
+            Private
+        </label>
+        <label for="api-show-deprecated">
+            <input type="checkbox" id="api-show-deprecated">
+            Deprecated
+        </label>
+
+    </div>
+
+
+            <div class="apidocs">
+                <div id="docs-main">
+                    <div class="content">
+                        <h1 class="file-heading">File: closio.main.js</h1>
+
+<div class="file">
+    <pre class="code prettyprint linenums">
+var closio = closio || {};
+
+closio.config = {};
+
+closio.panelOne = {};
+
+closio.panelTwo = {};
+
+closio.sidebar = {};
+
+closio.layoutMgr = {};
+
+closio.messagesSidebar = {};    //todo:this may not be used
+
+closio.options.defaultDealTab = &#x27;details&#x27;;
+
+closio.$appWrapper = false;
+
+
+
+//todo:is this used? we have addTo...
+closio.addView = function(options) {
+
+    var view = new closio[options.view](options.data);
+
+    options.$anchor.append(view.$get());
+
+    if (view.postRenderProcessing)
+        view.postRenderProcessing();
+};
+
+closio.ContextManager = function () {
+    var context;
+
+    closio.router.on(&#x27;all&#x27;, function () {
+        var fragmentParts, modelType, modelId, secondaryModelType, secondaryModelId;
+
+        fragmentParts = closio.history.fragment.split(&#x27;/&#x27;);
+        //if this is actually a model, it will be plural, we need to remove the s
+        modelType = fragmentParts[0].slice(0, -1);
+        modelId = fragmentParts[1];
+
+        //if there is a secondary model, then the secondary model is the context
+        //i.w. deals/2/files/4 would yield a context of file, 4
+        if(fragmentParts[2] &amp;&amp; fragmentParts[3]){
+            secondaryModelType = fragmentParts[2].slice(0, -1);
+            secondaryModelId = fragmentParts[3];
+            closio.context(secondaryModelType, secondaryModelId);
+        }
+        else if(modelId){
+            //there is no secondary model, so the primary model is the context
+            closio.context(modelType, modelId);
+        }
+        else{
+            //the url is in the format &#x27;#deals&#x27; a list with no specific model id, and therefore no context
+        }
+
+
+    });
+
+    closio.history.on(&#x27;beforeRoute&#x27;, function(){
+        closio.clearContext();
+    });
+};
+
+/****************************************
+ Modules
+ ****************************************/
+//Base Module
+//todo:get rid of this in favor of views
+closio.Module = function() {
+    this.cssSelectors = {};
+
+    this.$element = {};
+
+    this.evtMgr = closio.evtMgr;
+
+
+};
+
+closio.Module.prototype.cssSelector = function(selectorName) {
+    var self = this;
+
+    if (self.cssSelectors[selectorName])
+        return self.cssSelectors[selectorName];
+    else return false;
+};
+
+closio.Module.prototype.cssClass = function(selectorName) {
+    var self = this;
+
+    if (self.cssSelectors[selectorName])
+        return self.cssSelectors[selectorName].substr(1);
+    else return false;
+};
+
+closio.Module.prototype.initialize = function() {
+    if (this.load)
+        this.load();
+
+    if (this.render)
+        this.render();
+};
+
+closio.Module.prototype.debugMessage = function() {
+    closio.utils.debugMessage.apply(this);
+};
+
+closio.Module.prototype.run = function(callback) {
+    closio.utils.run.apply(this, arguments);
+};
+
+//Layout Module, sets up left nav and right main window
+closio.LayoutManager = function() {
+    var self = this,
+        state, sel, c,
+        $domWindow, $appWindow, $sidebar, verticalMargin, horizontalMargin, headerHeight;
+
+    //the css selectors used by the layout manager
+    this.cssSelectors = {
+        sidebar:&#x27;#sidebar&#x27;,
+        appWindow:&#x27;.window&#x27;
+    };
+
+    //maintains the state of each of the layout components
+    state = {
+        sidebarWidth:0 //TODO: used?
+    };
+
+    //quick access to the cssSelector and cssClass functions
+    sel = self.cssSelector.bind(this);
+
+    init_base_layout();
+    
+    //save references to each of the dom elements required to manage the layout
+    $domWindow = $(window);
+    $appWindow = $(sel(&#x27;appWindow&#x27;));
+    $sidebar = $(sel(&#x27;sidebar&#x27;));
+
+    var sidebarWidth = $sidebar.width();
+
+    function initialize() {
+        state.sidebarWidth = $sidebar.width();
+
+        verticalMargin = parseInt($appWindow.css(&#x27;margin-top&#x27;), 10) + parseInt($appWindow.css(&#x27;margin-bottom&#x27;), 10);
+        headerHeight = $(&#x27;#header-wrapper&#x27;).height();
+        horizontalMargin = parseInt($appWindow.css(&#x27;margin-left&#x27;), 10) + parseInt($appWindow.css(&#x27;margin-right&#x27;), 10);
+        resize();
+
+        $appWindow.animate({&#x27;opacity&#x27;:1});
+    }
+
+    function init_base_layout(){
+       closio.$appWrapper = closio.templateManager.$get(&#x27;base-layout&#x27;);
+        $(&#x27;body&#x27;).append(closio.$appWrapper);
+    }
+
+    function resize() {
+        $appWindow.height($domWindow.height() - verticalMargin - headerHeight); //.width($domWindow.width() - sidebarWidth - horizontalMargin);
+    }
+
+    function hideMessages(){
+        $appWindow.addClass(&#x27;messages-closed&#x27;);
+    }
+
+    function showMessages(){
+        $appWindow.removeClass(&#x27;messages-closed&#x27;);
+    }
+
+    //event handlers
+    $domWindow.resize(resize);
+
+    initialize();
+
+    return{
+        resize:resize,
+        hideMessages:hideMessages,
+        showMessages:showMessages
+    }
+};
+
+closio.LayoutManager.prototype = new closio.Module();
+
+//shows or hides messages 
+closio.MessagesPanelManager = function(){
+    function hideMessages() {
+        closio.layoutMgr.hideMessages();
+        closio.messagesViewInstance.hide();
+        closio.evtMgr.publish(&#x27;messages-panel-hidden&#x27;);
+    }
+
+    function showMessages() {
+        closio.layoutMgr.showMessages();
+        closio.messagesViewInstance.show();
+        closio.evtMgr.publish(&#x27;messages-panel-showing&#x27;);
+    }
+
+    return{
+        hideMessages:hideMessages,
+        showMessages:showMessages
+    }
+};
+
+//TODO: ALl of these are views (button, button set, list) not modules. A module is a collection of views that work together for some purpose
+
+//Button, sets up buttons in the app 
+//todo:this should be a veiw
+closio.Button = function(options) {
+    this.options = options;
+
+    this.buttonText = options.buttonText; //Make sure there is consistency in there I am setting these values, constructor or load? Perhaps load funciton is replaced entirely by a model?
+
+    this.buttonType = this.options.buttonType || &#x27;flat-button&#x27;;
+
+    this.buttonId = options.buttonId;
+
+    this.initialize();
+}; //TODO: Should I combine button and button set? They are extremely similar in terms of the code that was written
+
+closio.Button.prototype = new closio.Module();
+
+closio.Button.prototype.render = function() {
+    var self = this;
+
+    self.$element = closio.templateManager.$get(&#x27;button&#x27;, {
+        buttonId:self.buttonId,
+        buttonType:self.buttonType,
+        buttonText:self.buttonText
+    });
+};
+
+closio.Button.prototype.setAction = function(action) {
+    var self = this;
+
+    self.$element.click(function() {
+        self.run(action, this);
+    });
+
+    if (self.options.action)
+        this.setAction(self.options.action);
+};
+
+/****************************************
+ Panel Managers
+ sets up left and right panels 
+ ****************************************/
+closio.PanelManager = function() {
+    this.anchor = $(&#x27;.window&#x27;);
+
+    this.content = $();
+
+    this.actions = [
+        {panelAction:&#x27;+&#x27;, actionUrl:&#x27;#&#x27;}
+    ];
+
+    this.panel = {};
+
+    this.cssSelectors = {};
+};
+
+closio.PanelManager.prototype.buildPanel = function() {
+    var self = this;
+
+    self.panel = new closio.PanelView({
+        id:self.id,
+        isPrimary:self.isPrimary,
+        type:self.isPrimary ? &#x27;&#x27; : &#x27;secondary&#x27;,
+        title:self.title,
+        anchor:self.anchor,
+        content:self.content, //TODO: Where is this getting set?
+        actions:self.actions
+    });
+
+    self.panel.$element.appendTo(self.anchor);
+};
+
+//Primary Panel
+closio.PrimaryPanelManager = function() {
+    var self = this;
+
+    this.id = &#x27;panel-one&#x27;;
+
+    this.isPrimary = true;
+
+    this.isHidden = false;
+
+    this.anchor = $(&#x27;.window&#x27;);
+
+    this.content = $();
+
+    this.$action = false;
+
+    this.panel = {};
+
+    this.model = &#x27;&#x27;;
+
+    this.title = &#x27;&#x27;;
+
+    this.collection = {};
+
+    this.firstItem = {};
+
+    this.maps = {
+        task:{
+            title:&#x27;task&#x27;,
+            meta1:&#x27;notes&#x27;
+        },
+        deal:{
+            title:&#x27;name&#x27;,
+            meta1:&#x27;clientName&#x27;,
+            meta2:&#x27;dueDateHumanized&#x27;
+        },
+        template:{
+            title:&#x27;name&#x27;,
+            meta1:&#x27;clientName&#x27;,
+            meta2:&#x27;dueDateHumanized&#x27;
+        },
+        client:{
+            title:&#x27;name&#x27;,
+            meta1:&#x27;email&#x27;
+        },
+        user:{
+            title:&#x27;name&#x27;,
+            meta1:&#x27;email&#x27;
+        },
+        proposal:{
+            title:&#x27;clientName&#x27;,
+            meta1:&#x27;formattedTotal&#x27;,
+            meta2:&#x27;statusText&#x27;
+        },
+        file:{
+            title:&#x27;name&#x27;
+        }
+    };
+
+    this.list = {};
+
+    this.actions = [
+        {panelAction:&#x27;+&#x27;, actionUrl:&#x27;#&#x27;}
+    ];
+    //filters are status indicators
+    this.filters = {
+        deal:[
+            {name:&#x27;In Progress&#x27;, value:0, param:&#x27;isArchived&#x27;},
+            {name:&#x27;Archived&#x27;, value:1, param:&#x27;isArchived&#x27;},
+            {name:&#x27;All&#x27;, value:&#x27;*&#x27;, param:&#x27;isArchived&#x27;, isDefault:true}
+        ],
+        proposal:[
+            {name:&#x27;Paid&#x27;, value:1, param:&#x27;isPaid&#x27;},
+            {name:&#x27;Overdue&#x27;, value:1, param:&#x27;isOverdue&#x27;},
+            {name:&#x27;All&#x27;, value:&#x27;*&#x27;, param:&#x27;isOverdue&#x27;, isDefault:true}
+        ]
+    };
+
+    //show and hide panel 
+    function showHidePanelAction(){
+
+        if(self.model == &#x27;client&#x27; || self.model == &#x27;deal&#x27; || self.model == &#x27;template&#x27;){
+            self.$action.css(&#x27;display&#x27;, &#x27;block&#x27;);
+        }
+        else self.$action.css(&#x27;display&#x27;, &#x27;none&#x27;);
+    }
+
+    //draw the panel
+    function draw(collection, map, selectedId) {
+        //remove the previous list view if it exists
+        if (self.listView)
+            self.listView.unload();
+
+        self.panel.notify(&#x27;loading&#x27;, false);
+
+        collection.on(&#x27;loaded&#x27;, function () {
+            self.listView = new closio.ListView(collection, map, selectedId);
+
+            self.panel.hideNotification();
+
+            self.listView.addTo({
+                $anchor:self.panel.$element,
+                position:&#x27;append&#x27;
+            });
+        });
+    }
+
+    //set up collections based on filters arguments
+    function processFiltered(filtered) {
+        var collection;
+
+        collection = new closio.Collection({model:self.model});
+
+        self.filtered = collection;
+
+        draw(collection, self.maps[self.model]);
+
+        collection.load(filtered);
+    }
+
+
+    //initialize the filter
+    function initFilter() {
+        var filters, defaultFilter;
+
+        if (self.panelFilter)
+            self.panelFilter.unload();
+
+        if (!self.filters[self.model])
+            return;
+
+        filters = self.filters[self.model];
+
+        self.panelFilter = new closio.PanelFilterView({
+            collection:self.collection,
+            filters:filters
+        });
+
+        self.panelFilter.addTo({$anchor:self.$panelFilterWrapper});
+
+        self.panelFilter.on(&#x27;filterApplied&#x27;, function (e, filtered) {
+            processFiltered(filtered);
+        });
+    }
+    //initialize the sort
+    function initSort(){
+
+        if(self.panelSort)
+            self.panelSort.unload();
+
+        if(self.model != &#x27;deal&#x27;)
+            return false;
+
+
+        self.panelSort = new closio.PanelSortView();
+        self.panelSort.addTo({$anchor:self.$panelSortWrapper});
+
+        self.panelSort.on(&#x27;sorted&#x27;, function(e, order){
+            var collectionToSort,
+                collection,
+                sortOrder = order == &#x27;descending&#x27; ? &#x27;desc&#x27; : &#x27;asc&#x27;;
+
+            if(self.filtered)
+                collectionToSort = self.filtered;
+            else collectionToSort = self.collection;
+
+            collectionToSort.sort(&#x27;createdDate&#x27;, sortOrder);
+
+            collection = new closio.Collection({model:self.model});
+
+            draw(collection, self.maps[self.model]);
+
+            collection.load(collectionToSort.models);
+        });
+    }
+    //loading content into the panel
+    this.setContent = function(model, selectedId) {
+        var panelLoaded = new $.Deferred(),
+            loadingView = new closio.PanelLoadingView();
+
+        if(this.isHidden)
+            this.show();
+
+        //x is a special id that the app will use to indicate that the list needs to be updated regardless of whether
+        //the model changed (i.e. when deleting items from the list)
+        if (!this.model || this.model !== model || selectedId == &#x27;x&#x27;) {
+            this.model = model;
+
+            self.panel.setTitle(ut.lang(&#x27;sidebar.&#x27; + model + &#x27;s&#x27;)); //closio.utils.ucFirst(model) + &#x27;s&#x27;);
+
+            self.collection = new closio.Collection({model:model});
+
+            initFilter();
+            initSort();
+
+            self.collection.on(&#x27;loaded&#x27;, function() { //TODO: Is this redundant? I&#x27;m checking whether the collection is loaded in the list object
+
+                self.firstItem = self.collection.getFirst();
+                panelLoaded.resolve();
+            });
+
+            //self.firstItem = self.collection.getFirst();
+            showHidePanelAction();
+
+            //remove the previous list view if it exists
+            if(self.listView)
+                self.listView.unload();
+
+            self.panel.notify(&#x27;loading&#x27;, false);
+
+            self.collection.on(&#x27;loaded&#x27;, function(){
+                self.listView = new closio.ListView(self.collection, self.maps[model], selectedId);
+
+                self.panel.hideNotification();
+
+                self.listView.addTo({
+                    $anchor:self.panel.$element,
+                    position:&#x27;append&#x27;
+                });
+            });
+
+            self.collection.load();
+        }
+        else {
+
+            //the model hasn&#x27;t changed so no need to update the list, but we still want to change the selected item
+            self.listView.setSelected(selectedId);
+            panelLoaded.resolve();
+        }
+
+        return panelLoaded;
+    };
+
+    //useful if we want to force the list to reload (i.e. when we&#x27;ve just added a new item to the list
+    this.reset = function(){
+        this.model = false;
+    };
+
+    this.buildPanel();
+
+    //todo: i can use the view domElements function?
+    this.$listWrapper = this.panel.$element.find(&#x27;.list-wrapper&#x27;);
+
+    this.$panelFilterWrapper = this.panel.$element.find(&#x27;.panel-filter-wrapper&#x27;);
+
+    this.$panelSortWrapper = this.panel.$element.find(&#x27;.panel-sort-wrapper&#x27;);
+
+    this.$action = this.panel.$element.find(&#x27;.panel-action&#x27;);
+
+    this.$action.click(function(){
+        new closio[&#x27;New&#x27; + closio.utils.ucFirst(self.model) + &#x27;View&#x27;]();
+    });
+
+    this.hide = function(){
+        self.isHidden = true;
+        self.panel.$element.closest(&#x27;.window&#x27;).addClass(&#x27;one-panel&#x27;);
+    };
+
+    this.show = function(){
+        self.isHidden = false;
+        self.panel.$element.closest(&#x27;.window&#x27;).removeClass(&#x27;one-panel&#x27;);
+    };
+};
+
+closio.PrimaryPanelManager.prototype = new closio.PanelManager();
+
+//Secondary Panel, sets up the secondary panel, etc. 
+closio.SecondaryPanelManager = function() {
+    var self = this, sel, c;
+
+    this.isPrimary = false;
+
+    this.id = &#x27;panel-two&#x27;;
+
+    this.title = &#x27;&#x27;;
+
+    this.anchor = $(&#x27;.window&#x27;);
+
+    this.content = $();
+
+
+    this.$actions = false;
+
+    this.$actionsWrapper = false;
+
+    this.panel = {};
+
+    //this panel may be based on a specific item(i.e. a deal)
+    this.item = {};
+
+    this.itemCategories = {};
+
+
+    this.messagesButton = {};
+
+    this.loadingView = new closio.PanelLoadingView();
+
+    this.noSelectionView = new closio.NoSelectionView();
+
+    this.setContent = function($content) {
+        self.panel.setContent($content);
+    };
+
+    this.setInnerContent = function($content) {
+        self.panel.setInnerContent($content);
+    };
+
+    this.setTitle = function(title){
+        self.panel.$title.text(closio.utils.html_entity_decode(title));
+    };
+
+    //todo:consider using closio.context instead of storing reference to the model
+    this.setModel = function(model){
+        var rebuildCategories;
+
+        if(typeof model != &#x27;undefined&#x27;){
+            if(!self.model){
+                rebuildCategories = true;
+            }
+            else {
+                rebuildCategories = (typeof self.model !== &#x27;undefined&#x27;) &amp;&amp; (self.model.type != model.type);
+            }
+
+
+
+        }
+
+        self.model = model;
+
+
+        if(rebuildCategories)
+            buildDealItemCategories();
+
+        self.setActions();
+    };
+
+    this.setTitleWidget = function(view) {
+        self.panel.setTitleWidget(view);
+    };
+
+    this.removeTitleWidget = function(){
+       self.panel.removeTitleWidget();
+    };
+
+    this.destroy = function(){
+        $(window).off(&#x27;resize.secondaryPanelManager&#x27;);
+    };
+    //module specific actions 
+    this.setActions = function(){
+        //todo:clean this up. Perhaps an addAction function
+        if(self.model &amp;&amp; self.model.type == &#x27;deal&#x27;){
+            self.actions = [{panelAction:&#x27;Edit&#x27;, actionUrl:&#x27;#&#x27;, id:&#x27;edit-panel-entity&#x27;}];
+
+            if(self.model.isArchived == 0)
+                self.actions.push({panelAction:&#x27;Archive&#x27;, actionUrl:&#x27;#&#x27;, id:&#x27;archive-panel-entity&#x27;});
+            else self.actions.push({panelAction:&#x27;Move to In Progress&#x27;, actionUrl:&#x27;#&#x27;, id:&#x27;unarchive-panel-entity&#x27;});
+
+            self.actions.push({panelAction:&#x27;Delete&#x27;, actionUrl:&#x27;#&#x27;, class:&#x27;danger&#x27;, id:&#x27;delete-panel-entity&#x27;});
+
+        }
+        else if(self.model &amp;&amp; $.inArray(self.model.type, [&#x27;client&#x27;, &#x27;user&#x27;]) !== -1){
+            self.actions = [
+                {panelAction:&#x27;Edit&#x27;, actionUrl:&#x27;#&#x27;, id:&#x27;edit-panel-entity&#x27;},
+                {panelAction:&#x27;Delete&#x27;, actionUrl:&#x27;#&#x27;, class:&#x27;danger&#x27;, id:&#x27;delete-panel-entity&#x27;}
+            ];
+        }
+        else if(self.model &amp;&amp; self.model.type == &#x27;template&#x27;){
+            self.actions = [
+
+                {panelAction:&#x27;New Deal From Template&#x27;, actionUrl:&#x27;#&#x27;, class:&quot;go&quot;, id:&#x27;new-deal-from-template&#x27;},
+                {panelAction:&#x27;Edit&#x27;, actionUrl:&#x27;#&#x27;, id:&#x27;edit-panel-entity&#x27;},
+                {panelAction:&#x27;Delete&#x27;, actionUrl:&#x27;#&#x27;, class:&#x27;danger&#x27;, id:&#x27;delete-panel-entity&#x27;}
+
+            ];
+        }
+        else {
+            self.actions = [];
+        }
+
+        var $actions = closio.templateManager.$get(&#x27;panel-actions&#x27;, {actions:self.actions});
+
+        self.$actions.html($actions);
+    };
+
+    //Not using the SecondaryPanelManager.prototype because there should only be one SecondaryPanelManger
+    function initialize() {
+        var dealItemCategories, messagesButton;
+
+        self.buildPanel();
+
+        buildDealItemCategories();
+        self.panel.addToMainMenu(self.itemCategories.$element, true);
+
+        //initially, there will be nothing selected
+        self.panel.clearContent(self.noSelectionView);
+
+
+
+        self.panel.resize();
+    }
+    //adds buttons to subView for a Deal
+    function buildDealItemCategories() {
+
+        var buttons, dealItemCategories;
+
+        buttons = [
+            {buttonId:&#x27;deal-details&#x27;, buttonText:&#x27;Details&#x27;},
+            {buttonId:&#x27;deal-calendar&#x27;, buttonText:&#x27;Calendar&#x27;},
+            {buttonId:&#x27;deal-tasks&#x27;, buttonText:&#x27;Tasks&#x27;},
+            {buttonId:&#x27;deal-files&#x27;, buttonText:&#x27;Files&#x27;},
+            {buttonId:&#x27;deal-proposals&#x27;, buttonText:&#x27;Proposals&#x27;},
+            {buttonId:&#x27;deal-notes&#x27;, buttonText:&#x27;Notes&#x27;}
+        ];
+
+        var buttonsToRemove = closio.modulesToHide;
+
+
+        if(self.model &amp;&amp; self.model.type == &#x27;template&#x27;){
+            buttonsToRemove = buttonsToRemove.concat([&#x27;Calendar&#x27;, &#x27;Proposals&#x27;]);
+        }
+
+        buttons = buttons.filter(function (value) {
+            //$.inArray(value.buttonText, buttonsToRemove);
+            return $.inArray(value.buttonText, buttonsToRemove) == -1;
+        });
+
+        dealItemCategories = new closio.ButtonSetView({
+            buttons:buttons
+        });
+
+        dealItemCategories.setAction(function(button) {
+            var type = $(button).attr(&#x27;id&#x27;).substr(8);
+            closio.navigate(self.model.type + &#x27;s/&#x27; + self.item.id + &#x27;/&#x27; + type);
+        });
+
+        self.panel.clearMainMenu();
+        self.panel.addToMainMenu(dealItemCategories.$element);
+
+        self.itemCategories = dealItemCategories;
+
+        return dealItemCategories;
+    }
+
+
+    $(window).on(&#x27;resize.secondaryPanelManager&#x27;,function() {
+        self.panel.resize();
+    });
+
+    closio.evtMgr.subscribe(&#x27;contextChanged&#x27;, function(){
+        self.setContent(self.loadingView.$get());
+    });
+
+    closio.evtMgr.subscribe(&#x27;contextCleared&#x27;, function(){
+        self.panel.clearContent(self.noSelectionView);
+    });
+
+    closio.evtMgr.subscribe(&#x27;setSecondaryContent&#x27;, function(e, contentDetails) {
+        var view = new closio[contentDetails.view](contentDetails.data);
+
+        self.setInnerContent(view.$get());
+    });
+
+    closio.evtMgr.subscribe(&#x27;secondaryContentUpdated&#x27;, function(){
+        self.panel.resize();
+    });
+
+
+    initialize();
+
+
+    this.$actions = this.panel.$element.find(&#x27;.panel-actions&#x27;);
+
+
+    //todo: this needs to be tied to setActions
+    this.panel.$element.on(&#x27;click&#x27;, &#x27;#edit-panel-entity&#x27;, function(){
+        new closio[&#x27;New&#x27; + closio.utils.ucFirst(self.model.type) + &#x27;View&#x27;](self.model);
+    });
+
+    this.panel.$element.on(&#x27;click&#x27;, &#x27;#delete-panel-entity&#x27;, function(){
+        var type = self.model.type;
+
+        closio[&#x27;Delete&#x27; + closio.utils.ucFirst(type) + &#x27;View&#x27;](self.model);
+    });
+
+    this.panel.$element.on(&#x27;click&#x27;, &#x27;#new-deal-from-template&#x27;, function(){
+        new closio.NewDealFromTemplateView(self.model);
+    });
+
+    this.panel.$element.on(&#x27;click&#x27;, &#x27;#archive-panel-entity&#x27;, function () {
+        closio[&#x27;Archive&#x27; + closio.utils.ucFirst(self.model.type) + &#x27;View&#x27;](self.model);
+    });
+
+    this.panel.$element.on(&#x27;click&#x27;, &#x27;#unarchive-panel-entity&#x27;, function () {
+        closio[&#x27;Unarchive&#x27; + closio.utils.ucFirst(self.model.type) + &#x27;View&#x27;](self.model);
+    });
+};
+
+closio.SecondaryPanelManager.prototype = new closio.PanelManager();
+
+
+closio.initModulesToHide = function(){
+    var modulesToHide = closio.config.modules_to_hide.split(&#x27;,&#x27;);
+    $.each(modulesToHide, function(i, moduleName){
+        modulesToHide[i] = $.trim(moduleName);
+    });
+
+    closio.modulesToHide = modulesToHide;
+};
+
+closio.buildLayout = function(){
+    closio.layoutMgr = new closio.LayoutManager();
+    closio.panelOne = new closio.PrimaryPanelManager();
+    closio.panelTwo = new closio.SecondaryPanelManager();
+    closio.messagesMgr = new closio.MessagesPanelManager();
+
+    closio.headerViewInstance = new closio.HeaderView();
+    closio.headerViewInstance.addTo({$anchor:$(&#x27;#header-wrapper&#x27;)});
+
+    closio.sidebarViewInstance = new closio.SidebarView();
+    closio.sidebarViewInstance.addTo({$anchor:$(&#x27;#sidebar&#x27;), position:&#x27;append&#x27;});
+
+    closio.messagesViewInstance = new closio.MessagesPanelView();
+    closio.messagesViewInstance.addTo({$anchor:$(&#x27;.inner-right&#x27;), position:&#x27;append&#x27;});
+
+    closio.initComplete = true;
+
+
+};
+
+closio.initViewCommonParams = function(){
+    closio.viewCommonParams = {
+        currencySymbol:closio.config.currency_symbol
+    };
+};
+
+
+
+closio.loadConfig = function(){
+    var configRequest;
+
+    //load the server side config options
+    configRequest = new closio.Request({
+        url:&#x27;app/config&#x27;,
+        success:function(response){
+            if(response.isValid()){
+                closio.config = response.data;
+                closio.initViewCommonParams();
+            }
+        }
+    });
+
+    return configRequest;
+};
+
+closio.loadLanguage = function(){
+    var langRequest;
+
+
+    //load the client side language file
+    langRequest = new closio.Request({
+        url:&#x27;app/language&#x27;,
+        success:function (response) {
+            if (response.isValid()) {
+                closio.language = response.data;
+            }
+        }
+    });
+
+    return langRequest;
+};
+
+//starts app show login or not logic
+closio.start = function(newLogin) {
+    var self = this,
+        continueStart = false,
+        loginCheckRequest, appStarted = $.Deferred();
+
+    //we can&#x27;t do anything without the router, so lets make sure it&#x27;s initialized
+    if(!closio.router){
+        //start the history and the app router
+        closio.history = new closio.History();
+        closio.router = new closio.Router(closio.routes);
+    }
+
+
+
+    closio.templateManager = new closio.TemplateManager();
+
+    $.when(closio.templateManager.loadingTemplatesPromise, closio.loadConfig(), closio.loadLanguage()).done(function() { //TODO: I should have some kind of global on function
+        loginCheckRequest = closio.Request({
+            url:&#x27;app/logged_in&#x27;,
+            success:function(response){
+                if(response.auth != &#x27;not_logged_in&#x27;)
+                    continueStart = true;
+            }
+        });
+
+        $.when(loginCheckRequest.isComplete).done(function(){
+            if (continueStart) {
+                closio.applyLocalization();
+
+                closio.initModulesToHide();
+
+                closio.buildLayout();
+
+
+                closio.contextMgr = new closio.ContextManager();
+
+                //we need to manually call the resize function once the main components have been built
+                closio.layoutMgr.resize();
+
+                appStarted.resolve();
+
+                if(!closio.history || !closio.history.started)
+                    closio.history.start();
+
+
+                //todo: i probably should&#x27;t show the screen until after the layout manager is finished loading?
+            }
+            else if(closio.isPublicRoute()){
+                if(!closio.history || !closio.history.started)
+                    closio.history.start();
+
+            }
+        });
+    });
+
+    return appStarted;
+};
+
+//cleanup and show login form
+closio.stop = function(message){
+    if(!closio.history || !closio.history.started)
+        closio.history.start();
+
+    if(closio.sidebarViewInstance)
+        closio.sidebarViewInstance.unload();
+
+    if(closio.headerViewInstance)
+        closio.headerViewInstance.unload();
+
+    if(closio.messagesViewInstance)
+        closio.messagesViewInstance.unload();
+
+    if(closio.$appWrapper)
+        closio.$appWrapper.remove();
+
+    //todo:this should stop history or the router or both
+    if(!$(&#x27;.login-window&#x27;).length){
+        closio.addView({
+            view:&#x27;LoginView&#x27;,
+            data:{message:message},
+            $anchor:$(&#x27;body&#x27;)
+        }); //todo: replace with the view.addTo funciton
+    }
+};
+
+closio.error = function (message) {
+    var error = closio.templateManager.$get(&#x27;error&#x27;);
+    return error.prepend(message);
+};
+
+closio.notice = function(message){
+    var error = closio.templateManager.$get(&#x27;notice&#x27;);
+    return error.prepend(message);
+};
+
+
+    </pre>
+</div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../assets/vendor/prettify/prettify-min.js"></script>
+<script>prettyPrint();</script>
+<script src="../assets/js/yui-prettify.js"></script>
+<script src="../assets/../api.js"></script>
+<script src="../assets/js/api-filter.js"></script>
+<script src="../assets/js/api-list.js"></script>
+<script src="../assets/js/api-search.js"></script>
+<script src="../assets/js/apidocs.js"></script>
+</body>
+</html>

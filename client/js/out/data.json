@@ -1,0 +1,116 @@
+{
+    "deal": {},
+    "files": {
+        "libs/jquery.js": {
+            "name": "libs/jquery.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "closio.core.js": {
+            "name": "closio.core.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "closio.main.js": {
+            "name": "closio.main.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "closio.options.js": {
+            "name": "closio.options.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        }
+    },
+    "modules": {},
+    "classes": {},
+    "classitems": [
+        {
+            "file": "libs/jquery.js",
+            "line": 4182,
+            "description": "Utility function for retreiving the text value of an array of DOM nodes",
+            "params": [
+                {
+                    "name": "elem",
+                    "description": "",
+                    "type": "Array|Element"
+                }
+            ],
+            "class": ""
+        },
+        {
+            "file": "closio.core.js",
+            "line": 163,
+            "description": "Request Object\n----------------------------------------------------------------------\n\nThe request object initiates a xhr request to the server side scripts",
+            "class": ""
+        },
+        {
+            "file": "closio.core.js",
+            "line": 294,
+            "description": "Routing & History\nEverything in this section is borrowed\nfrom the source of backbone.js",
+            "class": ""
+        },
+        {
+            "file": "closio.core.js",
+            "line": 1479,
+            "description": "Views",
+            "class": ""
+        },
+        {
+            "file": "closio.main.js",
+            "line": 66,
+            "description": "Modules",
+            "class": ""
+        },
+        {
+            "file": "closio.main.js",
+            "line": 243,
+            "description": "Panel Managers\nsets up left and right panels",
+            "class": ""
+        },
+        {
+            "file": "closio.options.js",
+            "line": 10,
+            "description": "MOD_REWRITE FIX\n If your server does not have mod_rewrite enabled you need to uncomment the\n line below.\n\n If you're not sure how to remove a javascript comment, this simply means\n that you need to remove the two slashes at the beginning of the line.\n Please see more about javascript comments at the following url:\n\n https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Code_comments",
+            "class": ""
+        }
+    ],
+    "warnings": [
+        {
+            "message": "Missing item type\nUtility function for retreiving the text value of an array of DOM nodes",
+            "line": " libs/jquery.js:4182"
+        },
+        {
+            "message": "Missing item type\nRequest Object\n----------------------------------------------------------------------\n\nThe request object initiates a xhr request to the server side scripts",
+            "line": " closio.core.js:163"
+        },
+        {
+            "message": "Missing item type\nRouting & History\nEverything in this section is borrowed\nfrom the source of backbone.js",
+            "line": " closio.core.js:294"
+        },
+        {
+            "message": "Missing item type\nViews",
+            "line": " closio.core.js:1479"
+        },
+        {
+            "message": "Missing item type\nModules",
+            "line": " closio.main.js:66"
+        },
+        {
+            "message": "Missing item type\nPanel Managers\nsets up left and right panels",
+            "line": " closio.main.js:243"
+        },
+        {
+            "message": "Missing item type\nMOD_REWRITE FIX\n If your server does not have mod_rewrite enabled you need to uncomment the\n line below.\n\n If you're not sure how to remove a javascript comment, this simply means\n that you need to remove the two slashes at the beginning of the line.\n Please see more about javascript comments at the following url:\n\n https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Code_comments",
+            "line": " closio.options.js:10"
+        }
+    ]
+}
